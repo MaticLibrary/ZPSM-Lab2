@@ -6,7 +6,7 @@ import type { Subject } from './data.js';
 import type { User } from './data.js';
 import { getMails } from './mails.js';
 import { load, save } from './storage.js';
-import { toUsers } from './validate.js';
+import { toStudentData } from './validate.js';
 
 export function weightedAverage(user: User): number {
   const { subjects } = user;
@@ -72,10 +72,17 @@ if (!existsSync(dataFile)) {
 }
 
 try {
-  const loadedData = load(dataFile);
+  const loadedData = toStudentData(load(dataFile));
   console.log('Loaded JSON data:', loadedData);
-  const validatedUsers = toUsers(loadedData);
-  const rankedUsers = [...validatedUsers].sort((left, right) => weightedAverage(right) - weightedAverage(left));
+  console.log('Last modified before save:', loadedData.lastModified);
+
+  save(loadedData.students, dataFile);
+  const roundTrippedData = toStudentData(load(dataFile));
+  console.log('Last modified after save and read:', roundTrippedData.lastModified);
+
+  const rankedUsers = [...roundTrippedData.students].sort(
+    (left, right) => weightedAverage(right) - weightedAverage(left),
+  );
   console.log('Students ranked by weighted average (descending):');
   for (const rankedUser of rankedUsers) {
     printSummary(rankedUser);

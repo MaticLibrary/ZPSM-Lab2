@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { ZodError } from 'zod';
-import type { User } from './data.js';
+import type { StudentData, User } from './data.js';
 
 const subjectSchema = z.object({
   name: z.string(),
@@ -12,6 +12,11 @@ const userSchema = z.object({
   firstName: z.string(),
   lastName: z.string(),
   subjects: z.array(subjectSchema),
+});
+
+const studentDataSchema = z.object({
+  lastModified: z.string().datetime(),
+  students: z.array(userSchema),
 });
 
 function validationError(error: ZodError, root = ''): TypeError {
@@ -40,10 +45,10 @@ export function toUser(input: unknown): User {
   return result.data;
 }
 
-export function toUsers(input: unknown): User[] {
-  const result = z.array(userSchema).safeParse(input);
+export function toStudentData(input: unknown): StudentData {
+  const result = studentDataSchema.safeParse(input);
   if (!result.success) {
-    throw validationError(result.error, 'students');
+    throw validationError(result.error);
   }
   return result.data;
 }

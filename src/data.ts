@@ -10,6 +10,11 @@ export type User = {
   subjects: Subject[];
 };
 
+export type StudentData = {
+  lastModified: string;
+  students: User[];
+};
+
 export const user: User = {
   firstName: 'Anna',
   lastName: 'Kowalska',

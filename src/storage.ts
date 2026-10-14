@@ -6,5 +6,13 @@ export function save(data: User | User[], file: string): void {
 }
 
 export function load(file: string): unknown {
-  return JSON.parse(readFileSync(file, 'utf8'));
+  const contents = readFileSync(file, 'utf8');
+  try {
+    return JSON.parse(contents);
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new SyntaxError(`Invalid JSON in "${file}": ${error.message}`, { cause: error });
+    }
+    throw error;
+  }
 }

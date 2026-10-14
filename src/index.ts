@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import { existsSync } from 'node:fs';
 import _ from 'lodash';
 import { users } from './data.js';
 import type { Subject } from './data.js';
@@ -65,12 +66,25 @@ console.log('Sorted email addresses:', sortedMails);
 console.log('Collections unchanged:', JSON.stringify(collections) === JSON.stringify(originalCollections));
 
 const dataFile = fileURLToPath(new URL('../data.json', import.meta.url));
-save(users, dataFile);
-const loadedData = load(dataFile);
-console.log('Loaded JSON data:', loadedData);
-const validatedUsers = toUsers(loadedData);
-const rankedUsers = [...validatedUsers].sort((left, right) => weightedAverage(right) - weightedAverage(left));
-console.log('Students ranked by weighted average (descending):');
-for (const rankedUser of rankedUsers) {
-  printSummary(rankedUser);
+if (!existsSync(dataFile)) {
+  save(users, dataFile);
+  console.log('Created student data file:', dataFile);
+}
+
+try {
+  const loadedData = load(dataFile);
+  console.log('Loaded JSON data:', loadedData);
+  const validatedUsers = toUsers(loadedData);
+  const rankedUsers = [...validatedUsers].sort((left, right) => weightedAverage(right) - weightedAverage(left));
+  console.log('Students ranked by weighted average (descending):');
+  for (const rankedUser of rankedUsers) {
+    printSummary(rankedUser);
+  }
+} catch (error) {
+  if (!(error instanceof SyntaxError) && !(error instanceof TypeError)) {
+    throw error;
+  }
+
+  console.error(`Could not process student data: ${error.message}`);
+  process.exitCode = 1;
 }

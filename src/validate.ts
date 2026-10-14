@@ -1,67 +1,49 @@
-import type { Subject, User } from './data.js';
+import { z } from 'zod';
+import type { ZodError } from 'zod';
+import type { User } from './data.js';
 
-function isRecord(input: unknown): input is Record<string, unknown> {
-  return typeof input === 'object' && input !== null && !Array.isArray(input);
-}
+const subjectSchema = z.object({
+  name: z.string(),
+  grade: z.number().finite(),
+  weight: z.number().finite(),
+});
 
-function requireString(record: Record<string, unknown>, field: string, label = field): string {
-  const value = record[field];
-  if (typeof value !== 'string') {
-    throw new TypeError(`${label} must be a string.`);
-  }
-  return value;
-}
+const userSchema = z.object({
+  firstName: z.string(),
+  lastName: z.string(),
+  subjects: z.array(subjectSchema),
+});
 
-function requireFiniteNumber(record: Record<string, unknown>, field: string, label = field): number {
-  const value = record[field];
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    throw new TypeError(`${label} must be a finite number.`);
-  }
-  return value;
-}
-
-function toSubject(input: unknown, index: number): Subject {
-  if (!isRecord(input)) {
-    throw new TypeError(`subjects[${index}] must be an object.`);
-  }
-
-  return {
-    name: requireString(input, 'name', `subjects[${index}].name`),
-    grade: requireFiniteNumber(input, 'grade', `subjects[${index}].grade`),
-    weight: requireFiniteNumber(input, 'weight', `subjects[${index}].weight`),
-  };
+function validationError(error: ZodError, root = ''): TypeError {
+  const message = error.issues
+    .map(({ path, message }) => {
+      const field = path.reduce<string>(
+        (result, part) =>
+          typeof part === 'number'
+            ? `${result}[${String(part)}]`
+            : result
+              ? `${result}.${String(part)}`
+              : String(part),
+        root,
+      );
+      return `${field || 'data'}: ${message}`;
+    })
+    .join('; ');
+  return new TypeError(message, { cause: error });
 }
 
 export function toUser(input: unknown): User {
-  if (!isRecord(input)) {
-    throw new TypeError('User data must be an object.');
+  const result = userSchema.safeParse(input);
+  if (!result.success) {
+    throw validationError(result.error);
   }
-
-  const subjectsInput = input.subjects;
-  if (!Array.isArray(subjectsInput)) {
-    throw new TypeError('subjects must be an array.');
-  }
-
-  return {
-    firstName: requireString(input, 'firstName'),
-    lastName: requireString(input, 'lastName'),
-    subjects: subjectsInput.map((subject: unknown, index: number) => toSubject(subject, index)),
-  };
+  return result.data;
 }
 
 export function toUsers(input: unknown): User[] {
-  if (!Array.isArray(input)) {
-    throw new TypeError('Student data must be an array.');
+  const result = z.array(userSchema).safeParse(input);
+  if (!result.success) {
+    throw validationError(result.error, 'students');
   }
-
-  return input.map((user: unknown, index: number) => {
-    try {
-      return toUser(user);
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new TypeError(`students[${index}]: ${error.message}`, { cause: error });
-      }
-      throw error;
-    }
-  });
+  return result.data;
 }

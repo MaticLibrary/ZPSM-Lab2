@@ -1,14 +1,14 @@
 import { fileURLToPath } from 'node:url';
 import _ from 'lodash';
-import { user } from './data.js';
+import { users } from './data.js';
 import type { Subject } from './data.js';
 import type { User } from './data.js';
 import { getMails } from './mails.js';
 import { load, save } from './storage.js';
-import { toUser } from './validate.js';
+import { toUsers } from './validate.js';
 
-export function printSummary(user: User): void {
-  const { firstName, lastName, subjects } = user;
+export function weightedAverage(user: User): number {
+  const { subjects } = user;
   const { weighted, weights } = subjects.reduce(
     (totals, { grade, weight }) => ({
       weighted: totals.weighted + grade * weight,
@@ -21,7 +21,12 @@ export function printSummary(user: User): void {
     throw new RangeError('Cannot calculate a weighted average when the total weight is zero.');
   }
 
-  const average = weighted / weights;
+  return weighted / weights;
+}
+
+export function printSummary(user: User): void {
+  const { firstName, lastName, subjects } = user;
+  const average = weightedAverage(user);
   console.log(`${firstName} ${lastName} - weighted average: ${average.toFixed(2)}`);
 }
 
@@ -30,16 +35,16 @@ function printSubjectSearch(label: string, weight: number, subject: Subject | un
   console.log(`${label} (weight ${weight}): ${result}`);
 }
 
-printSummary(user);
+printSummary(users[0]);
 
-const nativeMatch = user.subjects.find((subject) => subject.weight === 1);
+const nativeMatch = users[0].subjects.find((subject) => subject.weight === 1);
 printSubjectSearch('Array.find', 1, nativeMatch);
-const lodashMatch = _.find(user.subjects, (subject) => subject.weight === 1);
+const lodashMatch = _.find(users[0].subjects, (subject) => subject.weight === 1);
 printSubjectSearch('Lodash _.find', 1, lodashMatch);
 
-const missingNativeMatch = user.subjects.find((subject) => subject.weight === 7);
+const missingNativeMatch = users[0].subjects.find((subject) => subject.weight === 7);
 printSubjectSearch('Array.find', 7, missingNativeMatch);
-const missingLodashMatch = _.find(user.subjects, (subject) => subject.weight === 7);
+const missingLodashMatch = _.find(users[0].subjects, (subject) => subject.weight === 7);
 printSubjectSearch('Lodash _.find', 7, missingLodashMatch);
 
 const collections: unknown[] = [
@@ -60,9 +65,12 @@ console.log('Sorted email addresses:', sortedMails);
 console.log('Collections unchanged:', JSON.stringify(collections) === JSON.stringify(originalCollections));
 
 const dataFile = fileURLToPath(new URL('../data.json', import.meta.url));
-save(user, dataFile);
+save(users, dataFile);
 const loadedData = load(dataFile);
 console.log('Loaded JSON data:', loadedData);
-const validatedUser = toUser(loadedData);
-console.log('Summary from validated JSON data:');
-printSummary(validatedUser);
+const validatedUsers = toUsers(loadedData);
+const rankedUsers = [...validatedUsers].sort((left, right) => weightedAverage(right) - weightedAverage(left));
+console.log('Students ranked by weighted average (descending):');
+for (const rankedUser of rankedUsers) {
+  printSummary(rankedUser);
+}

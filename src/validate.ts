@@ -48,3 +48,20 @@ export function toUser(input: unknown): User {
     subjects: subjectsInput.map((subject: unknown, index: number) => toSubject(subject, index)),
   };
 }
+
+export function toUsers(input: unknown): User[] {
+  if (!Array.isArray(input)) {
+    throw new TypeError('Student data must be an array.');
+  }
+
+  return input.map((user: unknown, index: number) => {
+    try {
+      return toUser(user);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new TypeError(`students[${index}]: ${error.message}`, { cause: error });
+      }
+      throw error;
+    }
+  });
+}

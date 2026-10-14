@@ -1,0 +1,21 @@
+{
+  "firstName": "Anna",
+  "lastName": "Kowalska",
+  "subjects": [
+    {
+      "name": "Advanced Mobile Programming",
+      "grade": 4.5,
+      "weight": 3
+    },
+    {
+      "name": "Databases",
+      "grade": 4,
+      "weight": 2
+    },
+    {
+      "name": "Physical Education",
+      "grade": 5,
+      "weight": 1
+    }
+  ]
+}
